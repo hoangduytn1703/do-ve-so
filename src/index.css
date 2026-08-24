@@ -1,0 +1,36 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  color-scheme: light;
+  --bg: #fff8ee;
+  --card: #ffffff;
+  --text: #43302b;
+  --muted: #9c7f5f;
+  --border: #f3dfc0;
+  --primary: #e02328;
+  --primary-dark: #b8151c;
+  --gold: #ffb400;
+  --gold-dark: #d99400;
+  --gold-soft: #fff3d6;
+  --green: #22a94e;
+  --green-dark: #157a39;
+  --green-soft: #e5f7ea;
+  --hit: #e02328;
+  --cold: #3b82d6;
+  --win-bg: #fff7e0;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background:
+    radial-gradient(circle at 15% 0%, #ffe9c4 0%, transparent 45%),
+    radial-gradient(circle at 85% 10%, #ffdddd 0%, transparent 40%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--text);
+  line-height: 1.5;
+}

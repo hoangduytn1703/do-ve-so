@@ -1,0 +1,933 @@
+.app {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 20px 16px 48px;
+}
+
+/* ===== Header ===== */
+.header {
+  text-align: center;
+  background: linear-gradient(135deg, #e02328 0%, #ff5a36 60%, #ff9d2e 100%);
+  border-radius: 18px;
+  padding: 26px 20px 22px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(224, 35, 40, 0.28);
+}
+
+.header h1 {
+  font-size: 1.9rem;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(140, 20, 20, 0.45);
+  letter-spacing: 0.5px;
+}
+
+.subtitle {
+  color: #ffe9c0;
+  font-size: 0.95rem;
+  margin-top: 4px;
+}
+
+/* ===== Disclaimer ===== */
+.disclaimer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--gold-soft);
+  border: 1.5px dashed var(--gold-dark);
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  font-size: 0.88rem;
+}
+
+.disclaimer p {
+  flex: 1;
+}
+
+.disclaimer .btn-secondary {
+  white-space: nowrap;
+}
+
+/* ===== Cards ===== */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  box-shadow: 0 3px 12px rgba(224, 35, 40, 0.05);
+}
+
+.card h2 {
+  font-size: 1.05rem;
+  margin-bottom: 12px;
+  color: var(--primary-dark);
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+}
+
+.section-gap {
+  margin-top: 24px;
+}
+
+.stats-section-title {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--primary), #ff5a36);
+  color: #fff !important;
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-size: 0.95rem !important;
+  letter-spacing: 0.3px;
+  box-shadow: 0 3px 10px rgba(224, 35, 40, 0.25);
+}
+
+/* ===== Game tabs ===== */
+.game-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tab:hover {
+  border-color: var(--gold);
+}
+
+.tab-active {
+  background: linear-gradient(135deg, var(--primary), #ff5a36);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(224, 35, 40, 0.35);
+}
+
+.data-status {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* ===== View menu ===== */
+.view-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.view-tab {
+  flex: 1;
+  padding: 12px 10px;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.view-tab:hover {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+
+.view-tab-active {
+  background: linear-gradient(135deg, var(--gold), #ffcf4d);
+  border-color: var(--gold-dark);
+  color: #7a3c00;
+  box-shadow: 0 3px 10px rgba(255, 180, 0, 0.35);
+}
+
+/* ===== Bóng số ===== */
+.ball {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: #fff;
+  box-shadow: inset 0 -3px 5px rgba(0, 0, 0, 0.05);
+}
+
+.ball-hit {
+  background: linear-gradient(160deg, #ff4d52, var(--primary));
+  border-color: var(--primary-dark);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(224, 35, 40, 0.4);
+}
+
+/* Bóng số phụ màu vàng (Power 6/55) */
+.ball-gold:not(.ball-hit) {
+  border-style: dashed;
+  border-color: var(--gold-dark);
+  color: var(--gold-dark);
+}
+
+.ball-gold.ball-hit {
+  background: linear-gradient(160deg, #ffd34d, var(--gold));
+  border-color: var(--gold-dark);
+  color: #7a3c00;
+  box-shadow: 0 2px 6px rgba(255, 180, 0, 0.45);
+}
+
+/* Bóng số may mắn màu xanh lá (Lotto 5/35) */
+.ball-green:not(.ball-hit) {
+  border-style: dashed;
+  border-color: var(--green);
+  color: var(--green-dark);
+}
+
+.ball-green.ball-hit {
+  background: linear-gradient(160deg, #4cc973, var(--green));
+  border-color: var(--green-dark);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(34, 169, 78, 0.45);
+}
+
+.ball-sm {
+  width: 28px;
+  height: 28px;
+  font-size: 0.75rem;
+}
+
+.set-balls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.ball-cold {
+  background: linear-gradient(160deg, #7db3ef, var(--cold));
+  border-color: #2b6cb8;
+  color: #fff;
+}
+
+.ball-lg {
+  width: 46px;
+  height: 46px;
+  font-size: 1.1rem;
+}
+
+.ball-slot {
+  width: 42px;
+  height: 42px;
+  font-size: 1rem;
+  color: var(--muted);
+  background: var(--gold-soft);
+}
+
+.ball-picked {
+  background: linear-gradient(160deg, #ff4d52, var(--primary));
+  border-color: var(--primary-dark);
+  color: #fff;
+}
+
+.ball-slot-extra {
+  border-style: dashed;
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+
+.ball-picked-extra {
+  background: linear-gradient(160deg, #4cc973, var(--green));
+  border-color: var(--green-dark);
+  color: #fff;
+  border-style: solid;
+}
+
+.picked-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.pick-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ===== Lưới chọn số ===== */
+.number-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  gap: 6px;
+}
+
+.num {
+  padding: 10px 0;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.num:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: #fff1f1;
+}
+
+.num:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.num-selected {
+  background: linear-gradient(160deg, #ff4d52, var(--primary));
+  border-color: var(--primary-dark);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(224, 35, 40, 0.35);
+}
+
+.bao-badge {
+  margin-bottom: 12px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--gold-soft);
+  border: 1px dashed var(--gold-dark);
+  color: #7a3c00;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.extra-pick {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--green-soft);
+  border: 1px dashed var(--green);
+}
+
+.extra-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--green-dark);
+  margin-bottom: 8px;
+}
+
+.number-grid-extra {
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  max-width: 640px;
+}
+
+.num-extra:hover:not(:disabled) {
+  border-color: var(--green);
+  background: #f0fbf3;
+}
+
+.num-selected-extra {
+  background: linear-gradient(160deg, #4cc973, var(--green));
+  border-color: var(--green-dark);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(34, 169, 78, 0.4);
+}
+
+.paste-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.paste-row input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.paste-row input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+/* ===== Nút ===== */
+.btn-primary {
+  padding: 11px 30px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, var(--primary), #ff5a36);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(224, 35, 40, 0.35);
+  transition: transform 0.1s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--gold-dark);
+  background: var(--gold-soft);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-link {
+  border: none;
+  background: none;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: inherit;
+  text-decoration: underline;
+  padding: 0;
+}
+
+/* ===== Bộ số yêu thích & danh sách dò ===== */
+.sets-panel {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fffdf7;
+  border: 1px solid var(--border);
+}
+
+.sets-panel-queue {
+  background: var(--gold-soft);
+  border-color: #ffe1a1;
+}
+
+.sets-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.sets-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 0.92rem;
+}
+
+.set-row:last-child {
+  border-bottom: none;
+}
+
+.set-index {
+  color: var(--muted);
+  font-weight: 700;
+  min-width: 20px;
+}
+
+.set-nums {
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.set-bao {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--gold-dark);
+  background: var(--gold-soft);
+  border: 1px solid #ffe1a1;
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
+.set-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.btn-mini {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-mini:hover:not(:disabled) {
+  border-color: var(--gold-dark);
+  background: var(--gold-soft);
+}
+
+.btn-mini:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-mini-danger:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: #fff1f1;
+  color: var(--primary);
+}
+
+.row-click {
+  cursor: pointer;
+}
+
+.row-click:hover {
+  background: var(--gold-soft);
+}
+
+.row-active {
+  background: var(--win-bg);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+select,
+.input-number {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.input-number {
+  width: 90px;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.meta {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.muted-small {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* ===== Thống kê nhanh trong kết quả dò ===== */
+.stats-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 12px 20px;
+  border-radius: 14px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.stat b {
+  font-size: 1.35rem;
+}
+
+.stat span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.stat:hover:not(.stat-plain) {
+  border-color: var(--primary);
+}
+
+.stat-active {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, var(--primary), #ff5a36);
+  color: #fff;
+}
+
+.stat-active span {
+  color: #ffd9db;
+}
+
+.stat-plain {
+  cursor: default;
+}
+
+.stat-win {
+  border-color: var(--gold-dark);
+  background: var(--gold-soft);
+}
+
+/* ===== Sắp xếp kết quả ===== */
+.sort-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.sort-tab {
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sort-tab:hover {
+  border-color: var(--gold-dark);
+}
+
+.sort-tab-active {
+  background: linear-gradient(135deg, var(--primary), #ff5a36);
+  border-color: var(--primary-dark);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(224, 35, 40, 0.3);
+}
+
+/* ===== Bảng ===== */
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+th,
+td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+th {
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.row-win {
+  background: var(--win-bg);
+}
+
+.td-prize b {
+  color: var(--gold-dark);
+  font-size: 1.05rem;
+}
+
+.td-matched b {
+  font-size: 1.3rem;
+}
+
+/* Cột giải: chip cho từng giải, được xuống dòng thoải mái */
+.td-tiers {
+  white-space: normal;
+  min-width: 230px;
+  max-width: 360px;
+}
+
+.tier-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.tier-chip {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  border: 1px solid #ffe1a1;
+  color: var(--gold-dark);
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tier-chip-jackpot {
+  background: linear-gradient(135deg, var(--primary), #ff5a36);
+  border-color: var(--primary-dark);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(224, 35, 40, 0.3);
+}
+
+.bonus-tag {
+  margin-left: 6px;
+  font-size: 0.72rem;
+  color: var(--gold-dark);
+  font-weight: 800;
+}
+
+.td-balls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.td-rank {
+  color: var(--muted);
+}
+
+.ball-sep {
+  color: var(--muted);
+  margin: 0 2px;
+  font-weight: 700;
+}
+
+.show-more {
+  text-align: center;
+  margin-top: 14px;
+}
+
+/* ===== Thống kê tần suất ===== */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.summary-box {
+  border-radius: 12px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+}
+
+.summary-hot {
+  background: #fff1f1;
+  border-color: #ffc9c9;
+}
+
+.summary-cold {
+  background: #eef5fd;
+  border-color: #c9dff7;
+}
+
+.summary-overdue {
+  background: var(--gold-soft);
+  border-color: #ffe1a1;
+}
+
+.summary-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.btn-copy {
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-copy:hover {
+  border-color: var(--gold-dark);
+  background: var(--gold-soft);
+}
+
+.summary-balls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.td-bar {
+  min-width: 160px;
+}
+
+.bar-track {
+  display: inline-block;
+  vertical-align: middle;
+  width: 100px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  overflow: hidden;
+  margin-right: 8px;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--gold), var(--primary));
+}
+
+.bar-value {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.tag-fresh {
+  font-size: 0.78rem;
+  color: #1d8a3c;
+  background: #e5f7ea;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-weight: 700;
+}
+
+/* ===== Dự đoán ===== */
+.predict-form {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.predict-result {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fff7e0, #ffefef);
+  border: 1.5px dashed var(--gold-dark);
+  text-align: center;
+}
+
+.predict-title {
+  font-weight: 800;
+  color: var(--primary-dark);
+  margin-bottom: 12px;
+}
+
+.predict-balls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.predict-detail {
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 14px;
+}
+
+.predict-detail li {
+  padding: 2px 0;
+}
+
+.predict-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ===== Footer ===== */
+.footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-top: 10px;
+}
+
+.footer a {
+  color: var(--primary);
+  font-weight: 600;
+}
