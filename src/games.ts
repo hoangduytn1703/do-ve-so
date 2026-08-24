@@ -109,6 +109,9 @@ export const GAMES: Game[] = [
     id: 'power535',
     name: 'Lotto 5/35',
     url: `${DATA_BASE}/power535.jsonl`,
+    // Nguồn GitHub bị hổng 74 kỳ (crawler gián đoạn); đã cào bù một lần
+    // từ API Vietlott và đóng gói kèm app
+    extraDataUrl: `${import.meta.env.BASE_URL}data/power535-missing.jsonl`,
     maxNumber: 35,
     pickCount: 5,
     mainCount: 5,
@@ -182,7 +185,7 @@ export function formatPrize(tier: Tier): string {
 // ==========================================
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000 // 6 giờ
-const CACHE_VERSION = 'v2' // đổi khi format/nguồn dữ liệu thay đổi để bỏ cache cũ
+const CACHE_VERSION = 'v3' // đổi khi format/nguồn dữ liệu thay đổi để bỏ cache cũ
 
 function readCache(gameId: string): Draw[] | null {
   try {
