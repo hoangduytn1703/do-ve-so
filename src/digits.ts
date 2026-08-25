@@ -6,6 +6,9 @@ import { idNum, type Tier } from './games.ts'
 const DATA_BASE =
   'https://raw.githubusercontent.com/vietvudanh/vietlott-data/main/data'
 
+const BASE_URL: string =
+  (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/'
+
 export interface DigitDraw {
   date: string
   id: string
@@ -19,6 +22,8 @@ export interface DigitGame {
   id: string
   name: string
   url: string
+  // Kỳ bị thiếu ở nguồn GitHub, đã cào bù và đóng gói kèm app
+  extraDataUrl?: string
   rulesUrl: string
   // Các kiểu chơi khả dụng trên cùng một kỳ quay (đều chọn 2 số 3 chữ số)
   modes: {
@@ -33,6 +38,7 @@ export const DIGIT_GAMES: DigitGame[] = [
     id: 'max3d',
     name: 'Max 3D',
     url: `${DATA_BASE}/3d.jsonl`,
+    extraDataUrl: `${BASE_URL}data/3d-missing.jsonl`,
     rulesUrl: 'https://vietlott.vn/vi/choi/max3d/gioi-thieu-san-pham-max3d',
     modes: [
       {
@@ -51,6 +57,7 @@ export const DIGIT_GAMES: DigitGame[] = [
     id: 'max3dpro',
     name: 'Max 3D Pro',
     url: `${DATA_BASE}/3d_pro.jsonl`,
+    extraDataUrl: `${BASE_URL}data/3d_pro-missing.jsonl`,
     rulesUrl:
       'https://vietlott.vn/vi/choi/max3dpro/gioi-thieu-san-pham-max3dpro',
     modes: [
@@ -118,22 +125,36 @@ export async function loadDigitDraws(
     if (inMem) return { draws: inMem, fromCache: true }
   }
 
-  const res = await fetch(game.url)
+  const parse = (text: string) =>
+    text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return normalizeDraw(JSON.parse(line))
+        } catch {
+          return null
+        }
+      })
+      .filter((d): d is DigitDraw => d !== null)
+
+  const [res, extraRes] = await Promise.all([
+    fetch(game.url),
+    game.extraDataUrl
+      ? fetch(game.extraDataUrl).catch(() => null)
+      : Promise.resolve(null),
+  ])
   if (!res.ok) throw new Error(`Không tải được dữ liệu (HTTP ${res.status})`)
-  const text = await res.text()
-  const draws = text
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      try {
-        return normalizeDraw(JSON.parse(line))
-      } catch {
-        return null
-      }
-    })
-    .filter((d): d is DigitDraw => d !== null)
+  let draws = parse(await res.text())
   if (!draws.length) throw new Error('Dữ liệu tải về rỗng hoặc sai định dạng')
+
+  // Ghép kỳ bị thiếu; nguồn chính ưu tiên khi trùng id
+  if (extraRes?.ok) {
+    const extra = parse(await extraRes.text())
+    const have = new Set(draws.map((d) => d.id))
+    draws = [...draws, ...extra.filter((d) => !have.has(d.id))]
+  }
 
   memCache.set(game.id, draws)
   return { draws, fromCache: false }
@@ -366,7 +387,8 @@ export function computeDigitPositionStats(
   return stats
 }
 
-// Top bộ ba số ra nhiều nhất (tính cả 20 số mỗi kỳ)
+// Top bộ ba số ra nhiều nhất — đếm theo SỐ KỲ xuất hiện (giống thống kê
+// chính thức của Vietlott: 1 số ra 2 lần trong cùng kỳ chỉ tính 1 kỳ)
 export function computeDigitNumberStats(
   draws: DigitDraw[],
   limit = 0,
@@ -377,7 +399,7 @@ export function computeDigitNumberStats(
   const count = new Map<string, number>()
   const lastDate = new Map<string, string>()
   scanned.forEach((d) => {
-    for (const num of d.tiers.flat()) {
+    for (const num of new Set(d.tiers.flat())) {
       count.set(num, (count.get(num) ?? 0) + 1)
       if (!lastDate.has(num)) lastDate.set(num, d.date) // scanned mới → cũ
     }

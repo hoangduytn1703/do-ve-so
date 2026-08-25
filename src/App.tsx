@@ -128,7 +128,8 @@ export default function App() {
 
       <section className="card card-top">
         <div className="game-tabs">
-          {[...GAMES, ...DIGIT_GAMES].map((g) => (
+          {/* Keno tạm ẩn: quay 10 phút/kỳ, ~82k kỳ — web tĩnh dò không nổi, để sau */}
+          {[...GAMES.filter((g) => g.id !== 'keno'), ...DIGIT_GAMES].map((g) => (
             <button
               key={g.id}
               className={'tab' + (g.id === gameId ? ' tab-active' : '')}

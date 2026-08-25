@@ -286,6 +286,12 @@ export default function DigitsSearchView({ game, draws }: Props) {
   const [scanLimit, setScanLimit] = useState(0)
   const [favs, setFavs] = useState<DigitSet[]>(() => loadFavs(game.id))
   const [favOpen, setFavOpen] = useState(false)
+
+  // Đổi loại xổ số → nạp lại đúng danh sách yêu thích của loại đó, đóng ngăn kéo
+  useEffect(() => {
+    setFavs(loadFavs(game.id))
+    setFavOpen(false)
+  }, [game.id])
   const [queue, setQueue] = useState<DigitSet[]>([])
   const [searches, setSearches] = useState<DigitRun[] | null>(null)
   const [activeIdx, setActiveIdx] = useState(0)
@@ -564,7 +570,7 @@ export default function DigitsSearchView({ game, draws }: Props) {
       <aside className={'fav-drawer' + (favOpen ? ' fav-drawer-open' : '')}>
         <div className="drawer-head">
           <b>
-            ⭐ Bộ số yêu thích ({favs.length}/{MAX_FAVS})
+            ⭐ Yêu thích · {game.name} ({favs.length}/{MAX_FAVS})
           </b>
           <button
             className="btn-mini"

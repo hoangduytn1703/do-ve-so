@@ -252,9 +252,16 @@
 }
 
 .ball-picked {
-  background: linear-gradient(160deg, #ff4d52, var(--primary));
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.45), transparent 45%),
+    linear-gradient(160deg, #ff5a5f, var(--primary) 70%, #b8151c);
   border-color: var(--primary-dark);
   color: #fff;
+  transform: scale(1.1);
+  box-shadow:
+    inset 0 -4px 6px rgba(0, 0, 0, 0.28),
+    inset 0 2px 4px rgba(255, 255, 255, 0.35),
+    0 4px 8px rgba(224, 35, 40, 0.4);
 }
 
 .ball-slot-extra {
@@ -264,10 +271,17 @@
 }
 
 .ball-picked-extra {
-  background: linear-gradient(160deg, #4cc973, var(--green));
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.45), transparent 45%),
+    linear-gradient(160deg, #5fd485, var(--green) 70%, #157a39);
   border-color: var(--green-dark);
   color: #fff;
   border-style: solid;
+  transform: scale(1.1);
+  box-shadow:
+    inset 0 -4px 6px rgba(0, 0, 0, 0.28),
+    inset 0 2px 4px rgba(255, 255, 255, 0.35),
+    0 4px 8px rgba(34, 169, 78, 0.4);
 }
 
 .picked-row {
@@ -313,11 +327,21 @@
   cursor: not-allowed;
 }
 
-.num-selected {
-  background: linear-gradient(160deg, #ff4d52, var(--primary));
+/* Số đã chọn: to hơn 10%, hiệu ứng bóng 3D (sáng trên, tối dưới) */
+.num-selected,
+.num-selected:hover:not(:disabled) {
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.45), transparent 45%),
+    linear-gradient(160deg, #ff5a5f, var(--primary) 70%, #b8151c);
   border-color: var(--primary-dark);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(224, 35, 40, 0.35);
+  transform: scale(1.1);
+  box-shadow:
+    inset 0 -4px 6px rgba(0, 0, 0, 0.28),
+    inset 0 2px 4px rgba(255, 255, 255, 0.35),
+    0 5px 10px rgba(224, 35, 40, 0.45);
+  z-index: 1;
+  position: relative;
 }
 
 .mode-row {
@@ -377,11 +401,20 @@
   background: #f0fbf3;
 }
 
-.num-selected-extra {
-  background: linear-gradient(160deg, #4cc973, var(--green));
+.num-selected-extra,
+.num-selected-extra:hover:not(:disabled) {
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.45), transparent 45%),
+    linear-gradient(160deg, #5fd485, var(--green) 70%, #157a39);
   border-color: var(--green-dark);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(34, 169, 78, 0.4);
+  transform: scale(1.1);
+  box-shadow:
+    inset 0 -4px 6px rgba(0, 0, 0, 0.28),
+    inset 0 2px 4px rgba(255, 255, 255, 0.35),
+    0 5px 10px rgba(34, 169, 78, 0.45);
+  z-index: 1;
+  position: relative;
 }
 
 .paste-row {

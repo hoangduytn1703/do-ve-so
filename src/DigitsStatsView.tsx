@@ -106,8 +106,9 @@ export default function DigitsStatsView({
         🔥 Bộ ba số ra nhiều nhất (tính cả 20 số mỗi kỳ)
       </h2>
       <p className="meta">
-        Top {Math.min(showCount, numberStats.stats.length)} /{' '}
-        {numberStats.stats.length.toLocaleString()} bộ số từng xuất hiện ·{' '}
+        Đếm theo số kỳ có bộ số đó (ra 2 lần trong cùng kỳ chỉ tính 1 — giống
+        thống kê Vietlott). Top {Math.min(showCount, numberStats.stats.length)}{' '}
+        / {numberStats.stats.length.toLocaleString()} bộ số từng xuất hiện ·{' '}
         <CopyButton
           text={numberStats.stats
             .slice(0, 6)
@@ -122,7 +123,7 @@ export default function DigitsStatsView({
             <tr>
               <th>#</th>
               <th>Bộ số</th>
-              <th>Số lần ra</th>
+              <th>Số kỳ ra</th>
               <th>Ra gần nhất</th>
             </tr>
           </thead>
