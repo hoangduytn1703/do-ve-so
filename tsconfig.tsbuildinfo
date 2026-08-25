@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/ball.tsx","./src/copybutton.tsx","./src/predictview.tsx","./src/searchview.tsx","./src/statsview.tsx","./src/analysis.ts","./src/games.ts","./src/main.tsx","./src/vite-env.d.ts"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/ball.tsx","./src/copybutton.tsx","./src/digitssearchview.tsx","./src/digitsstatsview.tsx","./src/gotop.tsx","./src/predictview.tsx","./src/searchview.tsx","./src/statsview.tsx","./src/analysis.ts","./src/digits.ts","./src/games.ts","./src/main.tsx","./src/vite-env.d.ts"],"version":"5.9.3"}

@@ -1,8 +1,17 @@
 import { useEffect, useState } from 'react'
-import { GAMES, getGame, loadDraws, type Draw } from './games.ts'
+import { GAMES, getGame, idNum, loadDraws, type Draw } from './games.ts'
+import {
+  DIGIT_GAMES,
+  getDigitGame,
+  loadDigitDraws,
+  type DigitDraw,
+} from './digits.ts'
 import SearchView from './SearchView.tsx'
 import StatsView from './StatsView.tsx'
 import PredictView from './PredictView.tsx'
+import DigitsSearchView from './DigitsSearchView.tsx'
+import DigitsStatsView from './DigitsStatsView.tsx'
+import GoTop from './GoTop.tsx'
 import './App.css'
 
 type View = 'search' | 'stats' | 'predict'
@@ -38,22 +47,34 @@ export default function App() {
   const [extraPicks, setExtraPicks] = useState<number[]>([])
 
   const [draws, setDraws] = useState<Draw[] | null>(null)
+  const [digitDraws, setDigitDraws] = useState<DigitDraw[] | null>(null)
   const [fromCache, setFromCache] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const game = getGame(gameId)
+  // Max 3D / Max 3D Pro là game dạng số 3 chữ số, dữ liệu & giao diện riêng
+  const isDigits = DIGIT_GAMES.some((g) => g.id === gameId)
+  // Lưu ý: không gọi getGame(gameId) ở đây vì gameId có thể là game digits
 
   async function fetchData(id: string, force: boolean) {
     setLoading(true)
     setError(null)
     try {
-      const r = await loadDraws(getGame(id), { forceRefresh: force })
-      setDraws(r.draws)
-      setFromCache(r.fromCache)
+      if (DIGIT_GAMES.some((g) => g.id === id)) {
+        const r = await loadDigitDraws(getDigitGame(id), { forceRefresh: force })
+        setDigitDraws(r.draws)
+        setDraws(null)
+        setFromCache(r.fromCache)
+      } else {
+        const r = await loadDraws(getGame(id), { forceRefresh: force })
+        setDraws(r.draws)
+        setDigitDraws(null)
+        setFromCache(r.fromCache)
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Có lỗi khi tải dữ liệu')
       setDraws(null)
+      setDigitDraws(null)
     } finally {
       setLoading(false)
     }
@@ -69,6 +90,7 @@ export default function App() {
     setPicks([])
     setExtraPicks([])
     setDraws(null)
+    setDigitDraws(null)
   }
 
   const usePicks = (nums: number[], extra: number | null) => {
@@ -106,7 +128,7 @@ export default function App() {
 
       <section className="card card-top">
         <div className="game-tabs">
-          {GAMES.map((g) => (
+          {[...GAMES, ...DIGIT_GAMES].map((g) => (
             <button
               key={g.id}
               className={'tab' + (g.id === gameId ? ' tab-active' : '')}
@@ -129,28 +151,46 @@ export default function App() {
               </button>
             </>
           )}
-          {!loading && !error && draws && (
-            <>
-              Dữ liệu: {draws.length.toLocaleString()} kỳ (
-              {draws.reduce((a, b) =>
-                parseInt(a.id, 10) < parseInt(b.id, 10) ? a : b,
-              ).date}{' '}
-              →{' '}
-              {
-                draws.reduce((a, b) =>
-                  parseInt(a.id, 10) > parseInt(b.id, 10) ? a : b,
-                ).date
-              }
-              ){fromCache ? ' · cache' : ' · mới tải'} ·{' '}
-              <button
-                className="btn-link"
-                onClick={() => fetchData(gameId, true)}
-              >
-                Tải lại mới nhất
-              </button>
-            </>
-          )}
+          {!loading &&
+            !error &&
+            (() => {
+              const list = draws ?? digitDraws
+              if (!list) return null
+              const oldest = list.reduce((a, b) =>
+                idNum(a.id) < idNum(b.id) ? a : b,
+              )
+              const newest = list.reduce((a, b) =>
+                idNum(a.id) > idNum(b.id) ? a : b,
+              )
+              return (
+                <>
+                  Dữ liệu: {list.length.toLocaleString()} kỳ ({oldest.date} →{' '}
+                  {newest.date}){fromCache ? ' · cache' : ' · mới tải'} ·{' '}
+                  <button
+                    className="btn-link"
+                    onClick={() => fetchData(gameId, true)}
+                  >
+                    Tải lại mới nhất
+                  </button>
+                </>
+              )
+            })()}
         </p>
+        {!loading &&
+          !error &&
+          (draws || digitDraws) &&
+          (() => {
+            const info = isDigits ? getDigitGame(gameId) : getGame(gameId)
+            return (
+              <p className="rules-line">
+                📖 Mới chơi {info.name}? Xem{' '}
+                <a href={info.rulesUrl} target="_blank" rel="noreferrer">
+                  luật chơi & cơ cấu giải thưởng chính thức
+                </a>{' '}
+                trên trang Vietlott.
+              </p>
+            )
+          })()}
       </section>
 
       <nav className="view-tabs">
@@ -165,11 +205,11 @@ export default function App() {
         ))}
       </nav>
 
-      {draws && !loading && (
+      {!loading && !isDigits && draws && (
         <div key={gameId}>
           {view === 'search' && (
             <SearchView
-              game={game}
+              game={getGame(gameId)}
               draws={draws}
               picks={picks}
               setPicks={setPicks}
@@ -177,9 +217,36 @@ export default function App() {
               setExtraPicks={setExtraPicks}
             />
           )}
-          {view === 'stats' && <StatsView game={game} draws={draws} />}
+          {view === 'stats' && (
+            <StatsView game={getGame(gameId)} draws={draws} />
+          )}
           {view === 'predict' && (
-            <PredictView game={game} draws={draws} onUsePicks={usePicks} />
+            <PredictView
+              game={getGame(gameId)}
+              draws={draws}
+              onUsePicks={usePicks}
+            />
+          )}
+        </div>
+      )}
+
+      {!loading && isDigits && digitDraws && (
+        <div key={gameId}>
+          {view === 'search' && (
+            <DigitsSearchView game={getDigitGame(gameId)} draws={digitDraws} />
+          )}
+          {view === 'stats' && (
+            <DigitsStatsView game={getDigitGame(gameId)} draws={digitDraws} />
+          )}
+          {view === 'predict' && (
+            <section className="card">
+              <h2>🎯 Dự đoán — {getDigitGame(gameId).name}</h2>
+              <p className="meta">
+                Dự đoán cho Max 3D sẽ được bổ sung sau. Trong lúc chờ, bạn có
+                thể xem tab 📊 Thống kê: tần suất chữ số theo từng vị trí và
+                các bộ ba số ra nhiều nhất để tự chọn số nhé 🍀
+              </p>
+            </section>
           )}
         </div>
       )}
@@ -198,6 +265,8 @@ export default function App() {
         phải căn cứ trả thưởng và website không chịu trách nhiệm cho quyết
         định của người dùng.
       </footer>
+
+      <GoTop />
     </div>
   )
 }

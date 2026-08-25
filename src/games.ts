@@ -4,6 +4,11 @@
 const DATA_BASE =
   'https://raw.githubusercontent.com/vietvudanh/vietlott-data/main/data'
 
+// BASE_URL của Vite ('./' khi build, '/' khi dev); fallback '/' để chạy được
+// ngoài môi trường Vite (script test)
+const BASE_URL: string =
+  (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/'
+
 export interface Tier {
   label: string
   rank: number
@@ -11,12 +16,21 @@ export interface Tier {
   minPrize?: boolean // true = giải cộng dồn, prize là mức tối thiểu
 }
 
+// Kiểu game: lotto = chọn số từ 1 bộ số (Mega/Power/Lotto 5/35);
+// keno = chọn 1-10 số so với 20 số quay; digits = số 3 chữ số (Max 3D / Pro)
+export type GameKind = 'lotto' | 'keno' | 'digits'
+
 export interface Game {
   id: string
   name: string
+  kind: GameKind
   url: string
+  // Trang giới thiệu luật chơi & cơ cấu giải chính thức của Vietlott
+  rulesUrl: string
   // Dữ liệu bổ sung đóng gói kèm app (các kỳ cũ mà nguồn GitHub thiếu)
   extraDataUrl?: string
+  // File quá lớn (Keno ~12MB) thì không cache localStorage, chỉ giữ trong RAM
+  noCache?: boolean
   maxNumber: number
   pickCount: number
   mainCount: number
@@ -28,8 +42,9 @@ export interface Game {
   // Người chơi phải chọn thêm 1 số từ bộ số riêng (Lotto 5/35: số may mắn 1–12)
   extraPick?: { label: string; max: number }
   // Vé bao: số lượng số tối đa được chọn theo luật Vietlott hiện hành
+  // (Keno: số lượng số tối đa của bậc cao nhất)
   maxBao: number
-  getTier(matched: number, bonusMatched: boolean): Tier | null
+  getTier(matched: number, bonusMatched: boolean, pickCount?: number): Tier | null
 }
 
 export interface Draw {
@@ -57,14 +72,35 @@ export interface MatchResult {
   totalIsMin: boolean // true = có giải cộng dồn nên tổng là mức tối thiểu
 }
 
+// ID kỳ quay có thể chứa ký tự thừa (Keno: "#0110271") → lấy phần số để so sánh
+export function idNum(id: string): number {
+  return parseInt(id.replace(/\D/g, ''), 10) || 0
+}
+
+// Bảng trả thưởng Keno chính thức (vé 10.000đ): KENO_TABLE[bậc][số trúng] = tiền
+const KENO_TABLE: Record<number, Record<number, number>> = {
+  1: { 1: 20e3 },
+  2: { 2: 90e3 },
+  3: { 3: 200e3, 2: 20e3 },
+  4: { 4: 400e3, 3: 50e3, 2: 10e3 },
+  5: { 5: 4.4e6, 4: 50e3, 3: 10e3 },
+  6: { 6: 12.5e6, 5: 450e3, 4: 40e3, 3: 10e3 },
+  7: { 7: 40e6, 6: 1.2e6, 5: 100e3, 4: 20e3, 3: 10e3 },
+  8: { 8: 200e6, 7: 5e6, 6: 500e3, 5: 50e3, 4: 20e3, 0: 10e3 },
+  9: { 9: 800e6, 8: 12e6, 7: 1.5e6, 6: 150e3, 5: 30e3, 4: 10e3, 0: 10e3 },
+  10: { 10: 2e9, 9: 150e6, 8: 7.4e6, 7: 600e3, 6: 80e3, 5: 20e3, 0: 10e3 },
+}
+
 export const GAMES: Game[] = [
   {
     id: 'power645',
     name: 'Mega 6/45',
+    kind: 'lotto',
     url: `${DATA_BASE}/power645.jsonl`,
+    rulesUrl: 'https://vietlott.vn/vi/choi/mega-6-45/gioi-thieu-san-pham-6-45',
     // Nguồn GitHub bắt đầu từ kỳ #00198; kỳ #001–#197 (2016–2017) được cào
     // một lần từ API Vietlott và đóng gói kèm app
-    extraDataUrl: `${import.meta.env.BASE_URL}data/power645-early.jsonl`,
+    extraDataUrl: `${BASE_URL}data/power645-early.jsonl`,
     maxNumber: 45,
     pickCount: 6,
     mainCount: 6,
@@ -85,7 +121,10 @@ export const GAMES: Game[] = [
   {
     id: 'power655',
     name: 'Power 6/55',
+    kind: 'lotto',
     url: `${DATA_BASE}/power655.jsonl`,
+    rulesUrl:
+      'https://vietlott.vn/vi/choi/power-6-55/gioi-thieu-san-pham-power-655',
     maxNumber: 55,
     pickCount: 6,
     mainCount: 6,
@@ -108,10 +147,12 @@ export const GAMES: Game[] = [
   {
     id: 'power535',
     name: 'Lotto 5/35',
+    kind: 'lotto',
     url: `${DATA_BASE}/power535.jsonl`,
+    rulesUrl: 'https://vietlott.vn/vi/choi/lotto535/gioi-thieu-san-pham-535',
     // Nguồn GitHub bị hổng 74 kỳ (crawler gián đoạn); đã cào bù một lần
     // từ API Vietlott và đóng gói kèm app
-    extraDataUrl: `${import.meta.env.BASE_URL}data/power535-missing.jsonl`,
+    extraDataUrl: `${BASE_URL}data/power535-missing.jsonl`,
     maxNumber: 35,
     pickCount: 5,
     mainCount: 5,
@@ -135,6 +176,35 @@ export const GAMES: Game[] = [
       if (bonusMatched)
         return { label: 'Khuyến khích', rank: 7, prize: 10e3 }
       return null
+    },
+  },
+  {
+    id: 'keno',
+    name: 'Keno',
+    kind: 'keno',
+    url: `${DATA_BASE}/keno.jsonl`,
+    rulesUrl: 'https://vietlott.vn/vi/choi/keno/gioi-thieu-san-pham-keno',
+    noCache: true, // file ~12MB, vượt hạn mức localStorage
+    maxNumber: 80,
+    pickCount: 10, // bậc cao nhất; bậc thực tế = số lượng số người chơi chọn (1-10)
+    mainCount: 20, // mỗi kỳ quay 20 số
+    hasBonus: false,
+    bonusLabel: null,
+    bonusColor: null,
+    bonusIcon: '',
+    maxBao: 10, // không có vé bao, chỉ có bậc 1-10
+    // Bảng thưởng cố định theo bậc: cần biết người chơi chọn mấy số
+    getTier(matched, _bonusMatched, pickCount) {
+      const k = pickCount ?? 10
+      const prize = KENO_TABLE[k]?.[matched]
+      if (prize === undefined) return null
+      return {
+        label:
+          matched === 0 ? `An ủi (0/${k})` : `Trúng ${matched}/${k}`,
+        // Cùng bậc: trúng nhiều số hơn = giải cao hơn
+        rank: k - matched + 1,
+        prize,
+      }
     },
   },
 ]
@@ -236,13 +306,23 @@ export interface LoadResult {
   fromCache: boolean
 }
 
+// Cache trong RAM cho phiên hiện tại (Keno không lưu được localStorage vì quá lớn)
+const memCache = new Map<string, Draw[]>()
+
 export async function loadDraws(
   game: Game,
   { forceRefresh = false }: { forceRefresh?: boolean } = {},
 ): Promise<LoadResult> {
   if (!forceRefresh) {
-    const cached = readCache(game.id)
-    if (cached) return { draws: cached, fromCache: true }
+    const inMem = memCache.get(game.id)
+    if (inMem) return { draws: inMem, fromCache: true }
+    if (!game.noCache) {
+      const cached = readCache(game.id)
+      if (cached) {
+        memCache.set(game.id, cached)
+        return { draws: cached, fromCache: true }
+      }
+    }
   }
 
   const [res, extraRes] = await Promise.all([
@@ -267,7 +347,8 @@ export async function loadDraws(
     draws = [...draws, ...extra.filter((d) => !have.has(d.id))]
   }
 
-  writeCache(game.id, draws)
+  memCache.set(game.id, draws)
+  if (!game.noCache) writeCache(game.id, draws)
   return { draws, fromCache: false }
 }
 
@@ -301,6 +382,24 @@ export function matchDraw(
   const matchedNumbers = picks.filter((n) => main.includes(n))
   const k = picks.length
   const m = matchedNumbers.length
+
+  // Keno: không có tổ hợp/bao — tra thẳng bảng thưởng theo bậc (số lượng số đã chọn)
+  if (game.kind === 'keno') {
+    const tier = game.getTier(m, false, k)
+    return {
+      id: draw.id,
+      date: draw.date,
+      main,
+      bonus: null,
+      matchedNumbers,
+      matched: m,
+      bonusMatched: false,
+      tier,
+      tierWins: tier ? [{ tier, count: 1 }] : [],
+      totalPrize: tier?.prize ?? 0,
+      totalIsMin: false,
+    }
+  }
 
   // Lotto 5/35: số may mắn thuộc bộ số riêng, so với các số may mắn người chơi chọn.
   // Power 6/55: số vàng cùng bộ với 6 số chính, so với cả dàn số người chơi.
@@ -386,9 +485,7 @@ export function searchDraws(
   { limit = 0 }: { limit?: number } = {},
 ): MatchResult[] {
   // Sắp kỳ mới nhất lên đầu rồi giới hạn số kỳ cần dò
-  let scanned = [...draws].sort(
-    (a, b) => parseInt(b.id, 10) - parseInt(a.id, 10),
-  )
+  let scanned = [...draws].sort((a, b) => idNum(b.id) - idNum(a.id))
   if (limit > 0) scanned = scanned.slice(0, limit)
 
   const results = scanned.map((draw) =>
@@ -404,7 +501,7 @@ export function searchDraws(
     if (b.totalPrize !== a.totalPrize) return b.totalPrize - a.totalPrize
     if (b.matched !== a.matched) return b.matched - a.matched
     if (a.bonusMatched !== b.bonusMatched) return a.bonusMatched ? -1 : 1
-    return parseInt(b.id, 10) - parseInt(a.id, 10)
+    return idNum(b.id) - idNum(a.id)
   })
 
   return results

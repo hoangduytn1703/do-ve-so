@@ -1,8 +1,9 @@
-import { memo, useEffect, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import {
   comb,
   formatPicks,
   formatVND,
+  idNum,
   searchDraws,
   type Draw,
   type Game,
@@ -93,6 +94,32 @@ interface SearchRun {
   extraPicks: number[]
 }
 
+// Kiểu vé: thường, bao số chính, hoặc bao số may mắn (Lotto 5/35)
+type TicketMode =
+  | { kind: 'basic'; count: number }
+  | { kind: 'bao-main'; count: number }
+  | { kind: 'bao-lucky'; count: number }
+
+// Suy ra kiểu vé từ một bộ số có sẵn (dán chuỗi / dùng lại bộ yêu thích)
+function inferMode(
+  picks: number[],
+  extraPicks: number[],
+  game: Game,
+): TicketMode {
+  if (game.kind === 'keno') {
+    // Keno: bậc = số lượng số đã chọn (1-10)
+    return {
+      kind: 'basic',
+      count: Math.min(game.maxBao, Math.max(1, picks.length || game.pickCount)),
+    }
+  }
+  if (extraPicks.length > 1)
+    return { kind: 'bao-lucky', count: extraPicks.length }
+  if (picks.length > game.pickCount)
+    return { kind: 'bao-main', count: picks.length }
+  return { kind: 'basic', count: game.pickCount }
+}
+
 // Bộ số hiển thị dạng bóng tròn nhỏ (dùng ở yêu thích / danh sách dò / tổng quan)
 function SetBalls({ set, game }: { set: QuerySet; game: Game }) {
   return (
@@ -114,8 +141,9 @@ function SetBalls({ set, game }: { set: QuerySet; game: Game }) {
   )
 }
 
-// Nhãn kiểu bao của một bộ số (nếu có)
+// Nhãn kiểu bao/bậc của một bộ số (nếu có)
 function baoLabel(set: QuerySet, game: Game): string | null {
+  if (game.kind === 'keno') return `bậc ${set.picks.length}`
   if (set.picks.length > game.pickCount) return `bao ${set.picks.length}`
   if (set.extraPicks.length > 1) return `bao ${set.extraPicks.length} ${game.extraPick?.label.toLowerCase() ?? 'số phụ'}`
   return null
@@ -150,10 +178,10 @@ const ResultsSection = memo(function ResultsSection({
       if (r.tier) winners++
     }
     const oldest = search.results.reduce((a, b) =>
-      parseInt(a.id, 10) < parseInt(b.id, 10) ? a : b,
+      idNum(a.id) < idNum(b.id) ? a : b,
     )
     const newest = search.results.reduce((a, b) =>
-      parseInt(a.id, 10) > parseInt(b.id, 10) ? a : b,
+      idNum(a.id) > idNum(b.id) ? a : b,
     )
     return { byMatched, bonusHits, winners, oldest, newest }
   }, [search])
@@ -162,7 +190,7 @@ const ResultsSection = memo(function ResultsSection({
     const rows = search.results.filter((r) => r.matched >= minMatched)
     if (sortMode === 'time') {
       // Theo thời gian như trang Vietlott: kỳ mới nhất trước
-      return [...rows].sort((a, b) => parseInt(b.id, 10) - parseInt(a.id, 10))
+      return [...rows].sort((a, b) => idNum(b.id) - idNum(a.id))
     }
     return rows // search.results đã sắp gần trúng nhất trước
   }, [search, minMatched, sortMode])
@@ -366,22 +394,47 @@ export default function SearchView({
   const [pasteText, setPasteText] = useState('')
   const [scanLimit, setScanLimit] = useState(0)
   const [favs, setFavs] = useState<QuerySet[]>(() => loadFavs(game.id))
+  const [favOpen, setFavOpen] = useState(false)
   const [queue, setQueue] = useState<QuerySet[]>([])
   const [searches, setSearches] = useState<SearchRun[] | null>(null)
   const [activeIdx, setActiveIdx] = useState(0)
+  const resultsRef = useRef<HTMLDivElement>(null)
 
-  const isBaoMain = picks.length > game.pickCount
-  const isBaoLucky = extraPicks.length > 1
+  // Bấm dò xong tự cuộn xuống phần kết quả
+  useEffect(() => {
+    if (searches) {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [searches])
 
-  // Luật Vietlott: bao số thường và bao số may mắn không dùng chung —
-  // đã bao bên này thì bên kia giữ đúng số lượng cơ bản
-  const maxMain = isBaoLucky ? game.pickCount : game.maxBao
-  const maxLucky = isBaoMain ? 1 : (game.extraPick?.max ?? 0)
+  // Kiểu vé đang chơi: state riêng, quyết định cần chọn bao nhiêu số thường /
+  // số may mắn. Luật Vietlott: bao số thường và bao số may mắn không dùng chung.
+  const [ticketMode, setTicketModeState] = useState<TicketMode>({
+    kind: 'basic',
+    count: game.pickCount,
+  })
+
+  // Đổi kiểu vé thì cắt bớt số đang chọn cho vừa, giữ lại phần hợp lệ
+  const setTicketMode = (mode: TicketMode) => {
+    setTicketModeState(mode)
+    if (mode.kind === 'bao-lucky') {
+      setPicks(picks.slice(0, game.pickCount))
+      setExtraPicks(extraPicks.slice(0, mode.count))
+    } else {
+      setPicks(picks.slice(0, mode.kind === 'bao-main' ? mode.count : game.pickCount))
+      setExtraPicks(extraPicks.slice(0, 1))
+    }
+  }
+
+  // basic của keno = bậc (1-10 số); basic của lotto luôn = pickCount
+  const needMain =
+    ticketMode.kind === 'bao-lucky' ? game.pickCount : ticketMode.count
+  const needLucky = ticketMode.kind === 'bao-lucky' ? ticketMode.count : 1
 
   const togglePick = (n: number) => {
     if (picks.includes(n)) {
       setPicks(picks.filter((x) => x !== n))
-    } else if (picks.length < maxMain) {
+    } else if (picks.length < needMain) {
       setPicks([...picks, n].sort((a, b) => a - b))
     }
   }
@@ -389,20 +442,26 @@ export default function SearchView({
   const toggleLucky = (n: number) => {
     if (extraPicks.includes(n)) {
       setExtraPicks(extraPicks.filter((x) => x !== n))
-    } else if (extraPicks.length < maxLucky) {
+    } else if (extraPicks.length < needLucky) {
       setExtraPicks([...extraPicks, n].sort((a, b) => a - b))
     }
   }
 
-  const randomPick = () => {
-    const pool = Array.from({ length: game.maxNumber }, (_, i) => i + 1)
+  // Bốc ngẫu nhiên `count` số khác nhau trong 1..max
+  const drawRandom = (max: number, count: number) => {
+    const pool = Array.from({ length: max }, (_, i) => i + 1)
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
       ;[pool[i], pool[j]] = [pool[j], pool[i]]
     }
-    setPicks(pool.slice(0, game.pickCount).sort((a, b) => a - b))
+    return pool.slice(0, count).sort((a, b) => a - b)
+  }
+
+  // Ngẫu nhiên theo đúng kiểu vé đang chọn (kể cả vé bao)
+  const randomPick = () => {
+    setPicks(drawRandom(game.maxNumber, needMain))
     if (game.extraPick) {
-      setExtraPicks([1 + Math.floor(Math.random() * game.extraPick.max)])
+      setExtraPicks(drawRandom(game.extraPick.max, needLucky))
     }
   }
 
@@ -446,14 +505,51 @@ export default function SearchView({
     if (luckies.length > 1) main = main.slice(0, game.pickCount)
     if (main.length > game.pickCount) luckies = luckies.slice(0, 1)
 
+    // Dán số nào thì chuyển kiểu vé theo đúng số lượng vừa dán
     setPicks(main)
     if (luckies.length) setExtraPicks(luckies)
+    setTicketModeState(inferMode(main, luckies, game))
     setPasteText('')
   }
 
+  // Các kiểu vé khả dụng cho game này
+  const ticketModes: TicketMode[] =
+    game.kind === 'keno'
+      ? // Keno: bậc 1-10, mỗi bậc một bảng thưởng riêng
+        Array.from(
+          { length: game.maxBao },
+          (_, i) => ({ kind: 'basic', count: i + 1 }) as const,
+        )
+      : [
+          { kind: 'basic', count: game.pickCount },
+          ...Array.from(
+            { length: game.maxBao - game.pickCount },
+            (_, i) =>
+              ({ kind: 'bao-main', count: game.pickCount + 1 + i }) as const,
+          ),
+          ...(game.extraPick
+            ? Array.from(
+                { length: game.extraPick.max - 1 },
+                (_, i) => ({ kind: 'bao-lucky', count: i + 2 }) as const,
+              )
+            : []),
+        ]
+
+  const modeLabel = (m: TicketMode) =>
+    m.kind === 'basic'
+      ? game.kind === 'keno'
+        ? `Bậc ${m.count} (chọn ${m.count} số)`
+        : `Vé thường (${m.count} số)`
+      : m.kind === 'bao-main'
+        ? `Bao ${m.count}`
+        : `Bao ${m.count} ${game.extraPick?.label.toLowerCase()}`
+
+  const modeKey = (m: TicketMode) => `${m.kind}:${m.count}`
+
+  // Đủ số theo đúng kiểu vé đang chọn thì mới thêm được vào danh sách dò
   const picksReady =
-    picks.length >= game.pickCount &&
-    (!game.extraPick || extraPicks.length >= 1)
+    picks.length === needMain &&
+    (!game.extraPick || extraPicks.length === needLucky)
   const comboCount =
     comb(picks.length, game.pickCount) * Math.max(1, extraPicks.length)
 
@@ -469,6 +565,7 @@ export default function SearchView({
     const next = [...favs, { picks: [...picks], extraPicks: [...extraPicks] }]
     setFavs(next)
     persistFavs(game.id, next)
+    setFavOpen(true) // mở ngăn kéo để thấy ngay bộ vừa lưu
   }
 
   const removeFav = (index: number) => {
@@ -510,8 +607,8 @@ export default function SearchView({
     favs.length > 0 && favs.every((f) => queueKeys.has(setKey(f)))
 
   const runSearch = () => {
-    const sets = queue.length ? queue : [currentSet]
-    const runs = sets.map((s) => ({
+    if (!queue.length) return
+    const runs = queue.map((s) => ({
       picks: [...s.picks],
       extraPicks: [...s.extraPicks],
       results: searchDraws(game, s.picks, s.extraPicks, draws, {
@@ -522,7 +619,8 @@ export default function SearchView({
     setActiveIdx(0)
   }
 
-  const canSearch = queue.length > 0 || picksReady
+  // Chỉ dò từ danh sách: phải thêm bộ số vào danh sách trước
+  const canSearch = queue.length > 0
 
   // Tổng quan khi dò nhiều bộ
   const summary = useMemo(() => {
@@ -534,7 +632,7 @@ export default function SearchView({
       for (const r of run.results) {
         if (r.tier) {
           winners++
-          if (!latestWin || parseInt(r.id, 10) > parseInt(latestWin.id, 10)) {
+          if (!latestWin || idNum(r.id) > idNum(latestWin.id)) {
             latestWin = r
           }
         }
@@ -551,20 +649,43 @@ export default function SearchView({
   return (
     <>
       <section className="card">
-        <h2>
-          Chọn {game.pickCount} số (1–{game.maxNumber})
-          {game.extraPick &&
-            ` + ${game.extraPick.label.toLowerCase()} (1–${game.extraPick.max})`}{' '}
+        <h2>Chọn kiểu vé & bộ số</h2>
+
+        <div className="mode-row">
+          <label>
+            🎫 Kiểu vé:{' '}
+            <select
+              value={modeKey(ticketMode)}
+              onChange={(e) => {
+                const [kind, count] = e.target.value.split(':')
+                setTicketMode({
+                  kind: kind as TicketMode['kind'],
+                  count: Number(count),
+                } as TicketMode)
+              }}
+            >
+              {ticketModes.map((m) => (
+                <option key={modeKey(m)} value={modeKey(m)}>
+                  {modeLabel(m)}
+                  {m.kind !== 'basic' &&
+                    ` — ${(m.kind === 'bao-main'
+                      ? comb(m.count, game.pickCount)
+                      : m.count
+                    ).toLocaleString()} tổ hợp`}
+                </option>
+              ))}
+            </select>
+          </label>
           <span className="hint">
-            — bao số thường (tối đa {game.maxBao} số)
+            Cần chọn {needMain} số (1–{game.maxNumber})
             {game.extraPick &&
-              ` hoặc bao ${game.extraPick.label.toLowerCase()} (tối đa ${game.extraPick.max} số) — không bao cả hai cùng lúc`}
+              ` + ${needLucky} ${game.extraPick.label.toLowerCase()} (1–${game.extraPick.max})`}
           </span>
-        </h2>
+        </div>
 
         <div className="picked-row">
           {Array.from(
-            { length: Math.max(game.pickCount, picks.length) },
+            { length: Math.max(needMain, picks.length) },
             (_, i) => (
               <span
                 key={i}
@@ -578,7 +699,7 @@ export default function SearchView({
             <>
               <span className="ball-sep">+</span>
               {Array.from(
-                { length: Math.max(1, extraPicks.length) },
+                { length: Math.max(needLucky, extraPicks.length) },
                 (_, i) => (
                   <span
                     key={i}
@@ -609,12 +730,10 @@ export default function SearchView({
           </div>
         </div>
 
-        {(isBaoMain || isBaoLucky) && (
+        {ticketMode.kind !== 'basic' && picksReady && (
           <p className="bao-badge">
-            {isBaoMain
-              ? `🎫 Vé bao ${picks.length}: ${comboCount.toLocaleString()} tổ hợp`
-              : `🎫 Bao ${extraPicks.length} ${game.extraPick?.label.toLowerCase()}: ${comboCount.toLocaleString()} tổ hợp`}{' '}
-            · giá vé {formatVND(comboCount * 10000)} · tiền thưởng các tổ hợp
+            🎫 {modeLabel(ticketMode)}: {comboCount.toLocaleString()} tổ hợp ·
+            giá vé {formatVND(comboCount * 10000)} · tiền thưởng các tổ hợp
             trúng được cộng dồn
           </p>
         )}
@@ -622,15 +741,15 @@ export default function SearchView({
         <div className="number-grid">
           {Array.from({ length: game.maxNumber }, (_, i) => i + 1).map((n) => {
             const selected = picks.includes(n)
-            const full = picks.length >= maxMain && !selected
+            const full = picks.length >= needMain && !selected
             return (
               <button
                 key={n}
                 className={'num' + (selected ? ' num-selected' : '')}
                 disabled={full}
                 title={
-                  full && isBaoLucky
-                    ? 'Đang bao số may mắn nên chỉ chọn đúng 5 số thường'
+                  full
+                    ? `${modeLabel(ticketMode)} chỉ chọn ${needMain} số — bỏ bớt số khác hoặc đổi kiểu vé`
                     : undefined
                 }
                 onClick={() => togglePick(n)}
@@ -644,14 +763,14 @@ export default function SearchView({
         {game.extraPick && (
           <div className="extra-pick">
             <p className="extra-label">
-              {game.bonusIcon} {game.extraPick.label} (chọn 1 số, hoặc nhiều số
-              để bao — tối đa {game.extraPick.max}):
+              {game.bonusIcon} {game.extraPick.label} — chọn {needLucky} số
+              (1–{game.extraPick.max}):
             </p>
             <div className="number-grid number-grid-extra">
               {Array.from({ length: game.extraPick.max }, (_, i) => i + 1).map(
                 (n) => {
                   const selected = extraPicks.includes(n)
-                  const full = extraPicks.length >= maxLucky && !selected
+                  const full = extraPicks.length >= needLucky && !selected
                   return (
                     <button
                       key={n}
@@ -660,8 +779,8 @@ export default function SearchView({
                       }
                       disabled={full}
                       title={
-                        full && isBaoMain
-                          ? 'Đang bao số thường nên chỉ chọn đúng 1 số may mắn'
+                        full
+                          ? `${modeLabel(ticketMode)} chỉ chọn ${needLucky} ${game.extraPick?.label.toLowerCase()} — đổi kiểu vé nếu muốn bao`
                           : undefined
                       }
                       onClick={() => toggleLucky(n)}
@@ -692,77 +811,81 @@ export default function SearchView({
           </button>
         </div>
 
-        {/* Bộ số yêu thích */}
-        <div className="sets-panel">
-          <div className="sets-header">
-            <b>
-              ⭐ Bộ số yêu thích ({favs.length}/{MAX_FAVS})
-            </b>
-            {favs.length > 0 && (
-              <span className="sets-header-actions">
-                <button
-                  className="btn-mini"
-                  disabled={allFavsQueued || queue.length >= MAX_QUEUE}
-                  title={
-                    allFavsQueued
-                      ? 'Tất cả đã có trong danh sách dò'
-                      : queue.length >= MAX_QUEUE
-                        ? `Danh sách dò đã đủ ${MAX_QUEUE} bộ`
-                        : 'Thêm tất cả bộ yêu thích vào danh sách dò'
-                  }
-                  onClick={addAllFavs}
-                >
-                  🎯 Dò hết
-                </button>
-                <button className="btn-link" onClick={clearFavs}>
-                  Xoá hết
-                </button>
-              </span>
-            )}
-          </div>
-          {favs.length === 0 ? (
-            <p className="muted-small">
-              Chưa có bộ số nào — chọn số rồi bấm "💾 Lưu yêu thích" để lần sau
-              khỏi nhập lại.
-            </p>
+        {/* Cụm hành động chính, ngay dưới ô dán nhanh */}
+        <div className="action-row">
+          <button
+            className="btn-add"
+            disabled={
+              !picksReady ||
+              queue.length >= MAX_QUEUE ||
+              queueKeys.has(currentKey)
+            }
+            title={
+              queue.length >= MAX_QUEUE
+                ? `Tối đa ${MAX_QUEUE} bộ số mỗi lần dò`
+                : queueKeys.has(currentKey)
+                  ? 'Bộ số này đã có trong danh sách'
+                  : 'Thêm bộ số đang chọn vào danh sách dò'
+            }
+            onClick={() => addToQueue(currentSet)}
+          >
+            ➕ Thêm vào danh sách dò
+          </button>
+          <button
+            className="btn-primary"
+            disabled={!canSearch}
+            title={
+              canSearch
+                ? undefined
+                : 'Thêm ít nhất 1 bộ số vào danh sách dò trước'
+            }
+            onClick={runSearch}
+          >
+            🔍 Dò {queue.length > 0 ? `${queue.length} bộ số` : 'số'}
+          </button>
+          <button
+            className="btn-secondary"
+            disabled={
+              !picksReady || favs.length >= MAX_FAVS || favKeys.has(currentKey)
+            }
+            title={
+              favs.length >= MAX_FAVS
+                ? `Đã đủ ${MAX_FAVS} bộ yêu thích`
+                : favKeys.has(currentKey)
+                  ? 'Bộ số này đã lưu rồi'
+                  : 'Lưu bộ số đang chọn vào yêu thích'
+            }
+            onClick={saveFav}
+          >
+            💾 Lưu yêu thích
+          </button>
+          <label className="scan-label">
+            Phạm vi:{' '}
+            <select
+              value={scanLimit}
+              onChange={(e) => setScanLimit(Number(e.target.value))}
+            >
+              {SCAN_LIMITS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {!picksReady ? (
+            <span className="hint">
+              {picks.length < needMain
+                ? `Chọn thêm ${needMain - picks.length} số nữa`
+                : game.extraPick && extraPicks.length < needLucky
+                  ? `Chọn thêm ${needLucky - extraPicks.length} ${game.extraPick.label.toLowerCase()} nữa`
+                  : 'Bỏ bớt số cho đúng kiểu vé'}
+            </span>
           ) : (
-            favs.map((f, i) => (
-              <div key={setKey(f)} className="set-row">
-                <SetBalls set={f} game={game} />
-                {baoLabel(f, game) && (
-                  <span className="set-bao">{baoLabel(f, game)}</span>
-                )}
-                <div className="set-actions">
-                  <button
-                    className="btn-mini"
-                    title="Điền bộ số này vào ô chọn"
-                    onClick={() => {
-                      setPicks([...f.picks])
-                      setExtraPicks([...f.extraPicks])
-                    }}
-                  >
-                    Dùng
-                  </button>
-                  <button
-                    className="btn-mini"
-                    disabled={
-                      queue.length >= MAX_QUEUE || queueKeys.has(setKey(f))
-                    }
-                    title="Thêm vào danh sách dò nhiều bộ"
-                    onClick={() => addToQueue(f)}
-                  >
-                    ➕ Dò
-                  </button>
-                  <button
-                    className="btn-mini btn-mini-danger"
-                    title="Xoá bộ số này"
-                    onClick={() => removeFav(i)}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ))
+            queue.length === 0 && (
+              <span className="hint">
+                Bấm "➕ Thêm vào danh sách dò" để dò bộ số này
+              </span>
+            )
           )}
         </div>
 
@@ -800,70 +923,117 @@ export default function SearchView({
           </div>
         )}
 
-        <div className="search-row">
-          <label>
-            Phạm vi dò:{' '}
-            <select
-              value={scanLimit}
-              onChange={(e) => setScanLimit(Number(e.target.value))}
+      </section>
+
+      {/* Nút mở & ngăn kéo bộ số yêu thích */}
+      <button
+        className="fav-fab"
+        onClick={() => setFavOpen(true)}
+        title="Bộ số yêu thích"
+      >
+        ⭐
+        {favs.length > 0 && <span className="fav-count">{favs.length}</span>}
+      </button>
+
+      {favOpen && (
+        <div className="drawer-backdrop" onClick={() => setFavOpen(false)} />
+      )}
+
+      <aside className={'fav-drawer' + (favOpen ? ' fav-drawer-open' : '')}>
+        <div className="drawer-head">
+          <b>
+            ⭐ Bộ số yêu thích ({favs.length}/{MAX_FAVS})
+          </b>
+          <button
+            className="btn-mini"
+            onClick={() => setFavOpen(false)}
+            title="Đóng"
+          >
+            ✕
+          </button>
+        </div>
+
+        {favs.length > 0 && (
+          <div className="drawer-actions">
+            <button
+              className="btn-add btn-add-sm"
+              disabled={allFavsQueued || queue.length >= MAX_QUEUE}
+              title={
+                allFavsQueued
+                  ? 'Tất cả đã có trong danh sách dò'
+                  : queue.length >= MAX_QUEUE
+                    ? `Danh sách dò đã đủ ${MAX_QUEUE} bộ`
+                    : 'Thêm tất cả bộ yêu thích vào danh sách dò'
+              }
+              onClick={addAllFavs}
             >
-              {SCAN_LIMITS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            className="btn-secondary"
-            disabled={
-              !picksReady || favs.length >= MAX_FAVS || favKeys.has(currentKey)
-            }
-            title={
-              favs.length >= MAX_FAVS
-                ? `Đã đủ ${MAX_FAVS} bộ yêu thích`
-                : favKeys.has(currentKey)
-                  ? 'Bộ số này đã lưu rồi'
-                  : 'Lưu bộ số đang chọn'
-            }
-            onClick={saveFav}
-          >
-            💾 Lưu yêu thích
-          </button>
-          <button
-            className="btn-secondary"
-            disabled={
-              !picksReady ||
-              queue.length >= MAX_QUEUE ||
-              queueKeys.has(currentKey)
-            }
-            title={
-              queue.length >= MAX_QUEUE
-                ? `Tối đa ${MAX_QUEUE} bộ số mỗi lần dò`
-                : queueKeys.has(currentKey)
-                  ? 'Bộ số này đã có trong danh sách'
-                  : 'Thêm bộ số đang chọn vào danh sách dò'
-            }
-            onClick={() => addToQueue(currentSet)}
-          >
-            ➕ Thêm vào danh sách dò
-          </button>
-          <button
-            className="btn-primary"
-            disabled={!canSearch}
-            onClick={runSearch}
-          >
-            {queue.length > 0 ? `🔍 Dò ${queue.length} bộ số` : '🔍 Dò số'}
-          </button>
-          {!picksReady && queue.length === 0 && (
-            <span className="hint">
-              {picks.length < game.pickCount
-                ? `Chọn thêm ${game.pickCount - picks.length} số nữa`
-                : `Chọn ${game.extraPick?.label.toLowerCase()} nữa`}
-            </span>
+              🎯 Dò hết
+            </button>
+            <button className="btn-link" onClick={clearFavs}>
+              Xoá hết
+            </button>
+          </div>
+        )}
+
+        <div className="drawer-body">
+          {favs.length === 0 ? (
+            <p className="muted-small drawer-empty">
+              Chưa có bộ số nào.
+              <br />
+              <br />
+              Chọn số ở ngoài rồi bấm "💾 Lưu yêu thích" để lần sau khỏi nhập
+              lại.
+            </p>
+          ) : (
+            favs.map((f, i) => (
+              <div key={setKey(f)} className="fav-card">
+                <div className="fav-card-top">
+                  <SetBalls set={f} game={game} />
+                  {baoLabel(f, game) && (
+                    <span className="set-bao">{baoLabel(f, game)}</span>
+                  )}
+                </div>
+                <div className="fav-card-actions">
+                  <button
+                    className="btn-mini"
+                    title="Điền bộ số này vào ô chọn"
+                    onClick={() => {
+                      setPicks([...f.picks])
+                      setExtraPicks([...f.extraPicks])
+                      setTicketModeState(inferMode(f.picks, f.extraPicks, game))
+                    }}
+                  >
+                    Dùng
+                  </button>
+                  <button
+                    className="btn-mini btn-mini-add"
+                    disabled={
+                      queue.length >= MAX_QUEUE || queueKeys.has(setKey(f))
+                    }
+                    title={
+                      queueKeys.has(setKey(f))
+                        ? 'Đã có trong danh sách dò'
+                        : 'Thêm vào danh sách dò'
+                    }
+                    onClick={() => addToQueue(f)}
+                  >
+                    ➕ Dò
+                  </button>
+                  <button
+                    className="btn-mini btn-mini-danger"
+                    title="Xoá bộ số này"
+                    onClick={() => removeFav(i)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))
           )}
         </div>
-      </section>
+      </aside>
+
+      <div ref={resultsRef} />
 
       {/* Tổng quan khi dò nhiều bộ số */}
       {searches && summary && (

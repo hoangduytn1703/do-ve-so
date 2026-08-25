@@ -1,8 +1,8 @@
 // Thống kê tần suất và dự đoán số (chỉ để giải trí).
-import type { Draw, Game } from './games.ts'
+import { idNum, type Draw, type Game } from './games.ts'
 
 export function sortDrawsNewest(draws: Draw[]): Draw[] {
-  return [...draws].sort((a, b) => parseInt(b.id, 10) - parseInt(a.id, 10))
+  return [...draws].sort((a, b) => idNum(b.id) - idNum(a.id))
 }
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -199,7 +199,8 @@ export function predict(
   method: PredictMethod,
   count: number = game.pickCount,
 ): Prediction {
-  const k = Math.min(Math.max(count, game.pickCount), game.maxBao)
+  // Keno: bậc 1-10 (cho phép ít hơn pickCount); lotto: từ vé thường đến bao
+  const k = Math.min(Math.max(count, 1), game.maxBao)
   const scanned = sortDrawsNewest(draws).slice(0, Math.max(1, periods))
   const mains = scanned.map((d) =>
     [...d.result.slice(0, game.mainCount)].sort((a, b) => a - b),
@@ -210,9 +211,10 @@ export function predict(
 
   if (method === 'avg' || method === 'max-pos' || method === 'min-pos') {
     for (let i = 0; i < k; i++) {
-      const t = k === 1 ? 0 : (i * (game.pickCount - 1)) / (k - 1)
+      // k vị trí trải đều trên dàn số quay (mainCount số mỗi kỳ)
+      const t = k === 1 ? (game.mainCount - 1) / 2 : (i * (game.mainCount - 1)) / (k - 1)
       const column = mains
-        .filter((m) => m.length === game.pickCount)
+        .filter((m) => m.length === game.mainCount)
         .map((m) => valueAt(m, t))
       if (!column.length) continue
       if (method === 'avg') {

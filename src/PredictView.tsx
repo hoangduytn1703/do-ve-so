@@ -69,23 +69,33 @@ export default function PredictView({ game, draws, onUsePicks }: Props) {
           </select>
         </label>
         <label>
-          Loại vé:{' '}
+          {game.kind === 'keno' ? 'Bậc:' : 'Loại vé:'}{' '}
           <select
             value={count}
             onChange={(e) => setCount(Number(e.target.value))}
           >
-            <option value={game.pickCount}>
-              Vé thường ({game.pickCount} số)
-            </option>
-            {Array.from(
-              { length: game.maxBao - game.pickCount },
-              (_, i) => game.pickCount + 1 + i,
-            ).map((k) => (
-              <option key={k} value={k}>
-                Bao {k} ({comb(k, game.pickCount).toLocaleString()} tổ hợp ·{' '}
-                {formatVND(comb(k, game.pickCount) * 10000)})
-              </option>
-            ))}
+            {game.kind === 'keno' ? (
+              Array.from({ length: game.maxBao }, (_, i) => i + 1).map((k) => (
+                <option key={k} value={k}>
+                  Bậc {k} (chọn {k} số)
+                </option>
+              ))
+            ) : (
+              <>
+                <option value={game.pickCount}>
+                  Vé thường ({game.pickCount} số)
+                </option>
+                {Array.from(
+                  { length: game.maxBao - game.pickCount },
+                  (_, i) => game.pickCount + 1 + i,
+                ).map((k) => (
+                  <option key={k} value={k}>
+                    Bao {k} ({comb(k, game.pickCount).toLocaleString()} tổ hợp ·{' '}
+                    {formatVND(comb(k, game.pickCount) * 10000)})
+                  </option>
+                ))}
+              </>
+            )}
           </select>
         </label>
         <button className="btn-primary" onClick={run}>
@@ -98,8 +108,11 @@ export default function PredictView({ game, draws, onUsePicks }: Props) {
         <div className="predict-result">
           <p className="predict-title">
             🍀 Bộ số may mắn của bạn
-            {result.numbers.length > game.pickCount &&
-              ` (vé bao ${result.numbers.length})`}{' '}
+            {game.kind === 'keno'
+              ? ` (bậc ${result.numbers.length})`
+              : result.numbers.length > game.pickCount
+                ? ` (vé bao ${result.numbers.length})`
+                : ''}{' '}
             — tính trên {result.usedDraws} kỳ gần nhất:
           </p>
           <div className="predict-balls">
